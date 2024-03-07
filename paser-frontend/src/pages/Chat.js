@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Input from '../components/Input';
 import Chatbox from '../components/Chatbox';
-import UserIcon from '../assets/user-icon.png';
+import userIcon from '../assets/user-icon.png';
+import botIcon from '../assets/bot-icon.png';
 
 // export default function Chat() {
 
@@ -148,7 +149,7 @@ import UserIcon from '../assets/user-icon.png';
 // }
 
 const ChatComponent = () => {
-  
+
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -178,7 +179,9 @@ const ChatComponent = () => {
 
     console.log('sending message...');
 
-    fetch('http://localhost:8000/app/chatbot/', {
+    // YOU MAY HAVE TO CHANGE THIS
+
+    fetch('http://localhost:8000/api/chatbot/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,7 +193,9 @@ const ChatComponent = () => {
       .then(data => {
         const botMessage = { type: 'bot', text: data.response };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
-      }).catch((e) =>   {
+        console.log('received chatbots response');
+        console.log(data);
+      }).catch((e) => {
         console.log('error fetching chatbot response: ', e);
       });
 
@@ -241,14 +246,21 @@ const ChatComponent = () => {
       <Sidebar />
       <div className="flex flex-col flex-1 h-screen p-2">
         <div className="flex flex-col h-full overflow-hidden">
-          <div 
-            ref={chatContainerRef} 
-            id="chatContainer" 
+          <div
+            ref={chatContainerRef}
+            id="chatContainer"
             className="flex flex-col w-[calc(130vh)] h-[calc(100vh-8rem)] overflow-y-auto p-2 space-y-2 bg-transparent"
           >
             {messages.map((message, index) => (
-              <div key={index} className={`chat-message ${message.type}-message ${message.type === 'user' ? 'self-end p-1 rounded-lg bg-gray-100 max-w-md ' : 'self-start'} rounded p-2`}>
-                <strong>{message.type === 'user' ? 'You:' : 'Paser:'}</strong>
+              <div key={index} className={`chat-message ${message.type}-message ${message.type === 'user' ? 'self-end p-1 rounded-lg bg-gray-100 max-w-md ' : 'self-start p-1 rounded-lg bg-gray-100 max-w-md '} rounded p-2`}>
+                <div className="flex items-center">
+                <img
+                  src={message.type === 'user' ? userIcon : botIcon}
+                  alt={message.type}
+                  className="h-6 w-6 rounded-full mr-2"
+                />
+                <strong>{message.type === 'user' ? 'You' : 'Paser'}</strong>
+                </div>
                 <span className="block text-sm">{message.text}</span>
               </div>
             ))}
@@ -256,13 +268,13 @@ const ChatComponent = () => {
           <div className="p-4 bg-white relative flex w-full max-w-[45rem]">
             <div className='relative h-10 w-full mr-2 min-w-[200px]'>
               <input
-              type="text"
-              value={userInput}
-              onChange={handleUserInputChange}
-              onKeyDown={handleKeyDown}
-              id="userInput"
-              placeholder=" "
-              className='peer h-full w-full shadow shadow-blue-gray-900/4 mr-2 rounded-[7px] border border-blue-gray-200 border-t-transparent bg-transparent px-3 py-2.5 pr-20 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50'
+                type="text"
+                value={userInput}
+                onChange={handleUserInputChange}
+                onKeyDown={handleKeyDown}
+                id="userInput"
+                placeholder=" "
+                className='peer h-full w-full shadow shadow-blue-gray-900/4 mr-2 rounded-[7px] border border-blue-gray-200 border-t-transparent bg-transparent px-3 py-2.5 pr-20 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50'
               // className="w-full mr-2 border border-blue-gray-200 border-t-transparent bg-transparent relative h-10 w-full min-w-[200px] p-3 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
               />
               {/* {showSuggestions ? showSuggestions && (
@@ -278,7 +290,7 @@ const ChatComponent = () => {
                 className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
                 Talk to Paser
               </label>
-              
+
             </div>
             <button
               onClick={sendMessage}

@@ -62,34 +62,40 @@ def chat(request):
     # uncomment to clear the sessions saved data
     # request.session.clear()
     chat_history = request.session.get('chat_history', [])
-    recommendations = request.session.get('recommendations', [])
+    # recommendations = request.session.get('recommendations', [])
     if 'saved_answers' in request.session:
         total = request.session.get('saved_answers')
     else:
         total = 0
-    return render(request, 'chatapp/chat.html', {'chat_history': chat_history, 'recommendations': recommendations, 'total': total})
+    return render(request, 'http://localhost:8000/api/chatbot/', {'chat_history': chat_history})
 
 @api_view(['POST'])
 def chat_view(request):
-    chatbot = Chatbot()
-
-    # Load context and user answers from session
-    if 'context' in request.session:
-        chatbot.context = request.session['context']
-    if 'saved_answers' in request.session:
-        chatbot.saved_answers = request.session['saved_answers']
+    
+    if 'chat_history' not in request.session:
+        request.session['chat_history'] = []
+    
+    response = "Hello world"
+    
+    # chatbot = Chatbot()
+    
+    # # Load context and user answers from session
+    # if 'context' in request.session:
+    #     chatbot.context = request.session['context']
+    # if 'saved_answers' in request.session:
+    #     chatbot.saved_answers = request.session['saved_answers']
 
     if request.method == "POST":
         data = json.loads(request.body.decode('utf-8'))
         user_message = data.get("message")
-        response = chatbot.interact(user_message)
+        # response = chatbot.interact(user_message)
 
-        # Save context to session
-        request.session['context'] = chatbot.context
+        # # Save context to session
+        # request.session['context'] = chatbot.context
 
-        # Store chat messages in session
-        if 'chat_history' not in request.session:
-            request.session['chat_history'] = []
+        # # Store chat messages in session
+        # if 'chat_history' not in request.session:
+        #     request.session['chat_history'] = []
 
         request.session['chat_history'].append({
             'role': 'You',
@@ -101,17 +107,17 @@ def chat_view(request):
         })
         request.session.modified = True  # Ensure the session is saved
 
-        if "done" in user_message.lower():
-            recommendations = chatbot.get_recommendations()
+        # if "done" in user_message.lower():
+        #     recommendations = chatbot.get_recommendations()
 
-            request.session['saved_answers'] = chatbot.saved_answers
+        #     request.session['saved_answers'] = chatbot.saved_answers
 
-            request.session['chat_history'].append({
-            'role': 'Brain', # Change form GenInvest to Brain
-            'message': recommendations
-            })            
+        #     request.session['chat_history'].append({
+        #     'role': 'Brain', # Change form GenInvest to Brain
+        #     'message': recommendations
+        #     })            
 
-            return JsonResponse({"response": recommendations})
+        #     return JsonResponse({"response": recommendations})
         return JsonResponse({"response": response})
 
 
