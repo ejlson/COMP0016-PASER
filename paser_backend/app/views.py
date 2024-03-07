@@ -1,13 +1,19 @@
 import json
 from app.models import Brain
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from app.serializers import BrainSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 
+def filemanager(request):
+    return render(request, 'index.html')
+
 # from .srcs.ChatbotEmbeddings import ChatBot
+
+def index(request):
+    return render(request, 'index.html')
 
 class BrainViewSet(viewsets.ModelViewSet):
     queryset = Brain.objects.all()
@@ -67,7 +73,7 @@ def chat(request):
         total = request.session.get('saved_answers')
     else:
         total = 0
-    return render(request, 'http://localhost:8000/api/chatbot/', {'chat_history': chat_history})
+    return render(request, 'chatapp/chat.html', {'chat_history': chat_history})
 
 @api_view(['POST'])
 def chat_view(request):
@@ -86,8 +92,8 @@ def chat_view(request):
     #     chatbot.saved_answers = request.session['saved_answers']
 
     if request.method == "POST":
-        data = json.loads(request.body.decode('utf-8'))
-        user_message = data.get("message")
+        # data = json.loads(request.body.decode('utf-8'))
+        # user_message = data.get("message")
         # response = chatbot.interact(user_message)
 
         # # Save context to session
@@ -97,15 +103,15 @@ def chat_view(request):
         # if 'chat_history' not in request.session:
         #     request.session['chat_history'] = []
 
-        request.session['chat_history'].append({
-            'role': 'You',
-            'message': user_message
-        })
-        request.session['chat_history'].append({
-            'role': 'Brain', # Change form GenInvest to Brain
-            'message': response
-        })
-        request.session.modified = True  # Ensure the session is saved
+        # request.session['chat_history'].append({
+        #     'role': 'You',
+        #     'message': user_message
+        # })
+        # request.session['chat_history'].append({
+        #     'role': 'Brain', # Change form GenInvest to Brain
+        #     'message': response
+        # })
+        # request.session.modified = True  # Ensure the session is saved
 
         # if "done" in user_message.lower():
         #     recommendations = chatbot.get_recommendations()

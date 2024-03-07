@@ -16,7 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BrainViewSet, chat_view, chat
+from .views import BrainViewSet, chat_view, chat, filemanager
+from . import views
 
 from app import views
 
@@ -24,6 +25,8 @@ router = DefaultRouter()
 router.register(r'brains', BrainViewSet)
 
 urlpatterns = [
+    path('', views.index, name='index'),
+    path('filemanager/', filemanager, name='filemanager'),  # new URL pattern
     path('admin/', admin.site.urls),
     path('api/brains/', views.brains, name='brains'),
     path('api/brains/<int:id>', views.brain, name='brain'),

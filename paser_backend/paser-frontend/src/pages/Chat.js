@@ -181,7 +181,10 @@ const ChatComponent = () => {
 
     // YOU MAY HAVE TO CHANGE THIS
 
-    fetch('http://localhost:8000/api/chatbot/', {
+    const currentUrl = new URL(window.location.href);
+    const baseUrl = `${currentUrl.protocol}//${currentUrl.host}/`;
+
+    fetch('/api/chatbot/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -193,8 +196,9 @@ const ChatComponent = () => {
       .then(data => {
         const botMessage = { type: 'bot', text: data.response };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
+        console.log(data.message)
         console.log('received chatbots response');
-        console.log(data);
+        console.log("base url: " + baseUrl);
       }).catch((e) => {
         console.log('error fetching chatbot response: ', e);
       });
@@ -211,7 +215,7 @@ const ChatComponent = () => {
 
   useEffect(() => {
     if (showSuggestions) {
-      fetch('http://localhost:8000/api/brains/')
+      fetch('/api/brains/')
         .then(response => response.json())
         .then(data => setBrains(data))
         .catch(error => console.error('Error fetching data: ', error));
@@ -225,13 +229,6 @@ const ChatComponent = () => {
     } else {
       setShowSuggestions(false);
     }
-  };
-
-  const handleSelectBrain = (brainName) => {
-    // Assuming you want to replace the '@' with the brain name
-    const newValue = userInput.replace(/@.*$/, `@${brainName}`);
-    setUserInput(newValue);
-    setShowSuggestions(false);
   };
 
   const handleKeyDown = (e) => {

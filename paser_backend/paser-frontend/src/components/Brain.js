@@ -5,6 +5,23 @@ import { useParams } from 'react-router-dom';
 
 export default function Brain(props) {
 
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const baseUrl = document.URL;
+
     return (
         <>
             <div className="w-[250px] max-w-sm bg-white border border-gray-200 rounded-lg shadow-xl shadow-blue-gray-900/4 dark:bg-gray-800 dark:border-gray-700 m-2">
@@ -20,12 +37,18 @@ export default function Brain(props) {
                         {props.editBrain}
                         <button
                             className="py-2 px-4 ms-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
-                            onClick = {(e) => {
+                            onClick={(e) => {
                                 console.log('deleting brain with id: ' + props.id);
-                                const url = 'http://localhost:8000/api/brains/' + props.id;
-                                fetch(url, { method: 'DELETE' })
+                                const url = '/api/brains/' + props.id;
+                                const csrftoken = getCookie('csrftoken');
+                                fetch(url, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'X-CSRFToken': csrftoken
+                                    }
+                                })
                                     .then((response) => {
-                                        if(!response.ok) {
+                                        if (!response.ok) {
                                             throw new Error('Network response was not ok');
                                         }
                                         // assume code went well
@@ -35,11 +58,12 @@ export default function Brain(props) {
                                     })
                                     .catch((e) => {
                                         console.log(e);
+                                        console.log('failed to delete brain with id: ' + props.id);
                                     });
                             }}
                         >
                             Delete
-                        </button>  
+                        </button>
                     </div>
                 </div>
             </div>

@@ -7,6 +7,8 @@ export default function AddBrain(props) {
     const [brainName, setBrainName] = useState('');
     const [brainDescription, setBrainDescription] = useState('');
 
+    const baseUrl = document.URL;
+
     /* File Upload Logic */
     const [file, setFile] = useState([]);
     const [status, setStatus] = useState('');
@@ -22,7 +24,7 @@ export default function AddBrain(props) {
             formData.append('file', file);
 
             try {
-                const result = await fetch('http://localhost:8000/api/brains/', {
+                const result = await fetch(baseUrl + 'api/brains/', {
                     method: 'POST',
                     body: formData
                 });
