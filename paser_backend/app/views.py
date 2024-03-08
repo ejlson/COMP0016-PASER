@@ -6,6 +6,8 @@ from app.serializers import BrainSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets
+from .LLM.singleton import ChatSingleton
+
 
 def filemanager(request):
     return render(request, 'index.html')
@@ -81,7 +83,6 @@ def chat_view(request):
     if 'chat_history' not in request.session:
         request.session['chat_history'] = []
     
-    response = "Hello world"
     
     # chatbot = Chatbot()
     
@@ -92,9 +93,17 @@ def chat_view(request):
     #     chatbot.saved_answers = request.session['saved_answers']
 
     if request.method == "POST":
-        # data = json.loads(request.body.decode('utf-8'))
-        # user_message = data.get("message")
-        # response = chatbot.interact(user_message)
+        data = json.loads(request.body.decode('utf-8'))
+        user_message = data.get("message")
+        
+        response = 'hello world'
+
+        # uncomment below to run LLM, NOTE: Might not run on your device due to dependencies
+        '''singleton = ChatSingleton()
+        chatbot = singleton.chatbot
+
+        response = chatbot.query(user_message)'''
+
 
         # # Save context to session
         # request.session['context'] = chatbot.context
