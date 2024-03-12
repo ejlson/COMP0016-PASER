@@ -96,13 +96,13 @@ def chat_view(request):
         data = json.loads(request.body.decode('utf-8'))
         user_message = data.get("message")
         
-        response = 'hello world'
+        # response = 'hello world'
 
         # uncomment below to run LLM, NOTE: Might not run on your device due to dependencies
-        '''singleton = ChatSingleton()
+        singleton = ChatSingleton()
         chatbot = singleton.chatbot
 
-        response = chatbot.query(user_message)'''
+        response = chatbot.query(user_message)
 
 
         # # Save context to session

@@ -1,13 +1,17 @@
 # chatbot.py
 
 from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.core import ChatPromptTemplate
+from llama_index.core import ChatPromptTemplate, Settings
 from llama_index.llms.ollama import Ollama
+
+
+
 
 CUSTOM_PROMPT = """
 You are a geography research assisstant, when with a question, and context that has been fetched 
-from relevant geography documents, you contruct a concise and accurate response using the context. 
-If you are unable to answer the question with the provided context, you must say "I do not have enough information to answer your question." 
+from relevant geography documents, you contruct a detailed and accurate response using the context. 
+If you are unable to answer the question with the provided context, you must say "I do not have enough 
+information to answer your question." 
 Do NOT use your own geography knowledge or historical knowledge to answer questions.
 
 KEYWORDS: 
@@ -28,7 +32,7 @@ EXPECTED OUTPUT: A detailed explanation including all information regarding how 
 class Chatbot:
     def __init__(self, embeddings):
         self.embeddings_chroma_db = embeddings
-        self.llm = Ollama(model='llama2')
+        self.llm = Ollama(model='tinyllama')
         self.custom_prompt = CUSTOM_PROMPT
 
         self.text_qa_template = ChatPromptTemplate([
@@ -57,6 +61,6 @@ class Chatbot:
     
     def query(self, query_str):
         
-        out = str(self.query_engine.query(query_str))
-        print(out)
-        return out
+        out = self.query_engine.query(query_str)
+        
+        return str(out)
