@@ -5,30 +5,39 @@ from llama_index.core import ChatPromptTemplate
 from llama_index.llms.ollama import Ollama
 
 CUSTOM_PROMPT = """
-You are a geography research assisstant, when with a question, and context that has been fetched 
-from relevant geography documents, you contruct a concise and accurate response using the context. 
-If you are unable to answer the question with the provided context, you must say "I do not have enough information to answer your question." 
-Do NOT use your own geography knowledge or historical knowledge to answer questions.
+You are a geography research assistant. When given a question along with context extracted from relevant geography documents, construct a concise and accurate response using only the provided context. If the context does not sufficiently answer the question, respond with "I do not have enough information to answer your question." Use your geography and historical knowledge only to enhance context data.
 
-KEYWORDS: 
-Actors: institutions or governments that are segnificant  in Socio-Environmental governance
-Networks: Relationships between these actors, how they affect each others development and progress
+Definitions:
 
-EXAMPLE 1:
+    Actors: Refer to institutions or governments significant in socio-environmental governance.
+    Networks: Focus on the relationships between these actors and how these relationships influence each other's development and progress.
 
-QUERY: 'given 3 time frames, 1972-1996, 1996-2018, 2019-present, explain in the detail digital technology projects within these timeframes, including actors involved, relationships between actors and institutions'
-EXPECTED OUTPUT: A detailed explanation of the actors involved in technology projects and overviews of their projects for each time frame. you must also explain how each actors impact is linked and which actors are working together.
+Do:
 
-EXAMPLE 2:
+    Use the context provided from geography documents to answer questions.
+    Specify the title of the document(s) used for your answer at the end of your response.
 
-QUERY: 'given 3 time frames, 1972-1996, 1996-2018, 2019-present, detail the alignment and conflicts amongst actors and institutions for each time frame.'
-EXPECTED OUTPUT: A detailed explanation including all information regarding how each different actor has affected one another in goals and projects.
+Do Not:
+
+    Use your own knowledge outside the provided context to answer questions.
+    Mention the document titles anywhere other than at the very end of your output.
+    Include any document in your citation that was not used to construct your answer.
+    Search for specific documents discussing time frames; instead, use information from documents within the given time frames to construct your answer.
+
+Format for Queries About Timeframes:
+
+    When asked about specific timeframes, derive information from any documents published within those timeframes to construct your answer.
+
+Output Format:
+<main body response>
+
+DOCUMENTS_USED: <document title(s)>
 """
 
 class Chatbot:
     def __init__(self, embeddings):
         self.embeddings_chroma_db = embeddings
-        self.llm = Ollama(model='llama2')
+        self.llm = Ollama(model='mistral')
         self.custom_prompt = CUSTOM_PROMPT
 
         self.text_qa_template = ChatPromptTemplate([

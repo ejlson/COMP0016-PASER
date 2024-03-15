@@ -10,13 +10,15 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 import chromadb
 import os
 
+
+
+
 class EmbeddingsChromaDB:
     def __init__(self, db_path="./chroma_db"):
         self.db_path = db_path
         self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
         self.vector_store = None
         self.index = None
-        # self.save_db_to_disk('/cs/student/projects1/2022/PASER/syseng_lab/Reports')
         self.init_vector_index()
 
 
@@ -41,14 +43,21 @@ class EmbeddingsChromaDB:
         if not self.index:
             self.init_vector_index()
         docs = []
-
         for doc_path in doc_paths:
             # if path is a directory
             if os.path.isdir(doc_path):
-                docs.extend(SimpleDirectoryReader(doc_path).load_data())
+                reader = SimpleDirectoryReader(input_dir=doc_path, recursive=True, required_exts=[".pdf", ".docx"])
+                doc = reader.load_data()
+                print(f'{len(doc)}\n\n {doc[500].get_content}')
+                docs.extend(doc)
             else:
                 # MUST BE TESTED
                 docs.extend(SimpleDirectoryReader(input_files=[doc_path]).load_data())
         for doc in docs:
             self.index.insert(doc)
     
+
+if __name__ == '__main__':
+    emb = EmbeddingsChromaDB()
+
+    emb.add_docs_to_db(['/cs/student/projects1/2022/PASER/Research-Actors/'])
