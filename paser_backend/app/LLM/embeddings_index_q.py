@@ -61,10 +61,11 @@ class EmbeddingsChromaDB:
 
         index = VectorStoreIndex.from_documents(docs, storage_context=self.storage_context, embed_model=self.embed_model)
         index.set_index_id(title)
-        self.chroma_collection.add(index)
+        index.storage_context.persist(f"./chroma_db/{title}")
+        print(len(self.indices))
 
 
 if __name__ == '__main__':
     emb = EmbeddingsChromaDB()
 
-    emb.create_new_index('/cs/student/projects1/2022/PASER/syseng_lab/fullstack/COMP0016-PASER/paser_backend/app/LLM/Reports/Annual_Report_2015.pdf', '2015')
+    #emb.create_new_index('/cs/student/projects1/2022/PASER/syseng_lab/fullstack/COMP0016-PASER/paser_backend/app/LLM/Reports/Annual_Report_2015.pdf', '2015')
