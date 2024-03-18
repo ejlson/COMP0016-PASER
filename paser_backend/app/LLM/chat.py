@@ -3,6 +3,7 @@
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core import ChatPromptTemplate
 from llama_index.llms.ollama import Ollama
+from embeddings_index_q import EmbeddingsChromaDB
 
 CUSTOM_PROMPT = """
 You are a geography research assistant. When given a question along with context extracted from relevant geography documents, construct a concise and accurate response using only the provided context. If the context does not sufficiently answer the question, respond with "I do not have enough information to answer your question." Use your geography and historical knowledge only to enhance context data.
@@ -54,10 +55,10 @@ class Chatbot:
             )),
         ])
         # TO STREAM OUTPUT
-        # self.query_engine = self.embeddings_chroma_db.index.as_query_engine(text_qa_template=self.text_qa_template, llm=self.llm, streaming=True)
+        self.query_engine = self.embeddings_chroma_db.index.as_query_engine(text_qa_template=self.text_qa_template, llm=self.llm, streaming=True)
 
         # INSTANT OUTPUT
-        self.query_engine = self.embeddings_chroma_db.index.as_query_engine(text_qa_template=self.text_qa_template, llm=self.llm)
+        #self.query_engine = self.embeddings_chroma_db.index.as_query_engine(text_qa_template=self.text_qa_template, llm=self.llm)
 
     def stream_query(self, query_str):
         streaming_response = self.query_engine.query(query_str)
@@ -69,3 +70,11 @@ class Chatbot:
         out = str(self.query_engine.query(query_str))
         print(out)
         return out
+
+emb = EmbeddingsChromaDB()
+
+chat = Chatbot(emb)
+
+# chat.stream_query('what was total expenditure on biennium in 2015?')
+
+chat.stream_query('what was UN total expenditure in 2017?')
