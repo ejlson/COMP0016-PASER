@@ -31,12 +31,14 @@ class Chatbot:
 
         main_tool = self.create_main_tool()
 
+        query_engine_tools.append(main_tool)
+
         Settings.llm = self.llm
 
         Settings.context_window = 8000
 
         agent_worker = RetryAgentWorker.from_tools(
-            query_engine_tools + [main_tool],
+            query_engine_tools,
             llm=self.llm,
             verbose=True,
             callback_manager=callback_manager,

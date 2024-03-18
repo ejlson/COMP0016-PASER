@@ -11,13 +11,15 @@ from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from llama_index.core.output_parsers import PydanticOutputParser, LangchainOutputParser
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core import ChatPromptTemplate, PromptTemplate
-from llama_index.core.selectors import LLMSingleSelector, PydanticSingleSelector
+from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 from llama_index.core.bridge.pydantic import Field, BaseModel
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.agent import AgentRunner
-
+import re
+from llama_index.llms.ollama import Ollama
+from llama_index.core.output_parsers.base import OutputParserException
 
 
 DEFAULT_PROMPT_STR = """
@@ -32,10 +34,12 @@ Do:
 
     Use the context provided from geography documents to answer questions.
     Specify the title of the document(s) used for your answer at the end of your response.
+    Do not say you are unable to answer a question just because it isnt answered in the context, you can contruct an answer by analysing informaiton in the context.
+    Ensure that any JSON outputs must follow the strict structure and contain no missing dilimiters including [] {} "" and ,
 
 Do Not:
 
-    Use your own knowledge outside the provided context to answer questions.
+    Use solely your own knowledge outside the provided context to answer questions.
     Mention the document titles anywhere other than at the very end of your output.
     Include any document in your citation that was not used to construct your answer.
     Search for specific documents discussing time frames; instead, use information from documents within the given time frames to construct your answer.
@@ -137,6 +141,7 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
         # first run router query engine
         response = self._router_query_engine.query(new_input)
 
+
         # append to current reasoning
         state["current_reasoning"].extend(
             [("user", new_input), ("assistant", str(response))]
@@ -172,7 +177,20 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
             #print(f"> Response eval: {response_eval.dict()}")
         is_done = True
         # return response
+        source = self.get_sources(response)
+
+        response = str(response) + source
+
         return AgentChatResponse(response=str(response)), is_done
+    
+    def get_sources(self, response):   
+        if hasattr(response, 'metadata'):
+            document_info = str(response.metadata)
+            find = re.findall(r"'page_label': '[^']*', 'file_name': '[^']*'", document_info)
+
+            sources = '\n\n'+'=' * 60+'\nContext Information' + str(find) + '\n'+'=' * 60+'\n'
+
+            return sources
 
     def _finalize_task(self, state: Dict[str, Any], **kwargs) -> None:
         """Finalize task."""
