@@ -7,7 +7,8 @@ from llama_index.core.agent import (
 from typing import Dict, Any, List, Tuple, Optional
 from llama_index.core.tools import BaseTool, QueryEngineTool
 from llama_index.core.program import LLMTextCompletionProgram
-from llama_index.core.output_parsers import PydanticOutputParser
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+from llama_index.core.output_parsers import PydanticOutputParser, LangchainOutputParser
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core import ChatPromptTemplate, PromptTemplate
 from llama_index.core.selectors import LLMSingleSelector, PydanticSingleSelector
@@ -20,7 +21,7 @@ from llama_index.core.agent import AgentRunner
 
 
 DEFAULT_PROMPT_STR = """
-You are a geography research assistant. When given a question along with context extracted from relevant geography documents, construct a concise and accurate response using the provided context. If the context does not sufficiently answer the question, respond with "I do not have enough information to answer your question." Use your geography and historical knowledge only to enhance context data, keep in mind that if the context seems even slightly relevant it is worth retrieving as titles don't always describe content in full.
+You are a geography research assistant. When given a question along with context extracted from relevant geography documents, construct a concise and accurate response using the provided context to help.
 
 Definitions:
 
@@ -146,8 +147,10 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
         chat_prompt_tmpl = get_chat_prompt_template(
             self.prompt_str, state["current_reasoning"]
         )
-        llm_program = LLMTextCompletionProgram.from_defaults(
-            output_cls=ChatMessage,
+
+
+        '''llm_program = LLMTextCompletionProgram.from_defaults(
+            output_parser=PydanticOutputParser(output_cls=ResponseEval),
             prompt=chat_prompt_tmpl,
             llm=self.llm
         )
@@ -161,13 +164,13 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
             is_done = True
         else:
             is_done = False
-        state["new_input"] = response_eval.new_question
+        state["new_input"] = response_eval.new_question'''
 
         if self.verbose:
             print(f"> Question: {new_input}")
             print(f"> Response: {response}")
-            print(f"> Response eval: {response_eval.dict()}")
-
+            #print(f"> Response eval: {response_eval.dict()}")
+        is_done = True
         # return response
         return AgentChatResponse(response=str(response)), is_done
 
