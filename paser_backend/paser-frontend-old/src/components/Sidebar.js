@@ -17,7 +17,7 @@ export default function Sidebar() {
 
     return (
         <>
-            <Card className="h-[calc(100vh-3.5rem)] max-w-[21rem] p-4 shadow-xl shadow-blue-gray-900/4 z-0 border border-blue-gray-200">
+            <Card className="h-[calc(100vh-3.5rem)] max-w-[21rem] p-4 shadow-xl shadow-blue-gray-900/4 z-0">
                 <div className="mb-1 flex items-center gap-16 px-4">
                     <Typography variant="h5" color="blue-gray">
                         Paser

@@ -35,7 +35,6 @@ Do:
     Use the context provided from geography documents to answer questions.
     Specify the title of the document(s) used for your answer at the end of your response.
     Do not say you are unable to answer a question just because it isnt answered in the context, you can contruct an answer by analysing informaiton in the context.
-    Ensure that any JSON outputs must follow the strict structure and contain no missing dilimiters including [] {} "" and ,
 
 Do Not:
 
@@ -113,7 +112,7 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
         self._router_query_engine = RouterQueryEngine(
             selector=LLMSingleSelector.from_defaults(),
             query_engine_tools=tools,
-            verbose=kwargs.get("verbose", False),
+            verbose=kwargs.get("verbose", True),
         )
         super().__init__(
             tools=tools,
@@ -177,9 +176,9 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
             #print(f"> Response eval: {response_eval.dict()}")
         is_done = True
         # return response
-        source = self.get_sources(response)
+        # source = self.get_sources(response)
 
-        response = str(response) + source
+        response = str(response) # + source
 
         return AgentChatResponse(response=str(response)), is_done
     

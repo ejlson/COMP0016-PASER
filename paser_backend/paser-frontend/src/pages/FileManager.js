@@ -8,7 +8,7 @@ import AddBrain from '../components/AddBrain';
 import EditBrain from '../components/EditBrain';
 
 function FileManager() {
-
+  const { id } = useParams();
   const [files, setFiles] = useState([]);
   useEffect(() => {
     fetch(`http://localhost:8000/api/brains/`)
@@ -18,7 +18,20 @@ function FileManager() {
 
   const baseUrl = 'http://localhost:8000';
 
-  function updateBrain(id, newBrainName, newBrainDescription) {
+  function handleDeleteBrain(deletedBrainId) {
+    setBrains(brains.filter(brain => brain.id !== deletedBrainId));
+  }
+
+  function handleBrainUpdate(updatedBrain) {
+    setBrains(brains.map(brain => {
+      if (brain.id === updatedBrain.id) {
+        return updatedBrain; // Replace with the updated brain
+      }
+      return brain; // Unchanged brains
+    }));
+  }
+
+  function updateBrain(id, newBrainName, newBrainDescription, newBrainFiles) {
 
     // implement files later
     const updateBrains = brains.map((brain) => {
@@ -26,30 +39,37 @@ function FileManager() {
         return {
           ...brain,
           name: newBrainName,
-          description: newBrainDescription
+          description: newBrainDescription,
+          file: newBrainFiles
         }
       }
       return brain;
     });
     setBrains(updateBrains);
+
+    // Prepare data for API call
+    const formData = new FormData();
+    formData.append('name', newBrainName);
+    formData.append('description', newBrainDescription);
+    newBrainFiles.forEach(file => formData.append('files', file));
+
+    // API call to update brain on server
+    axios({
+      method: 'patch',
+      url: `http://localhost:8000/brains/${id}/`,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+      .then(response => {
+        // Handle successful update
+        console.log('Brain updated successfully:', response.data);
+      })
+      .catch(error => {
+        // Handle error
+        console.error('Error updating brain:', error);
+      });
   }
 
-  /*
-  function newBrain(brainName, brainDescription) {
-    newBrain= {
-      id: uuidv4(),
-      name: brainName,
-      description: brainDescription
-    }
-    setBrains([...brains, newBrain])
-  }
-  */
-
-  /*
-  const [brainName, setBrainName] = useState('');
-  const [brainDescription, setBrainDescription] = useState('');
-  const [files, setFiles] = useState([]); 
-  */
 
   const [brains, setBrains] = useState();
   const [show, setShow] = useState(false);
@@ -68,46 +88,56 @@ function FileManager() {
       })
   }, []);
 
-  const { id } = useParams();
+
+
   const [brain, setBrain] = useState();
 
-  useEffect(() => {
-    console.log('useEffect');
-    const url = 'http://localhost:8000/api/brains/' + id;
-    fetch(url)
-      .then((response) => {
-        return response.json();
-      })
-      .then((data) => {
-        setBrain(data.brain);
-      });
-  }, []);
+  // function newBrain(brainName, brainDescription, brainFiles) {
+  //   const data = {
+  //       name: brainName,
+  //       description: brainDescription,
+  //       files: brainFiles
+  //   };
+  //   const url = baseUrl + '/api/brains/';
+  //   fetch(url, {
+  //       method: 'POST',
+  //       headers: {
+  //           'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(data)
+  //   }).then((response) => {
+  //       if(!response.ok) {
+  //           throw new Error('Network response was not ok');
+  //       }
+  //       return response.json();
+  //   }).then((data) => {
+  //       toggleShow();
+  //       console.log(data);
+  //       setBrains([...brains, data.brain]);
+  //       console.log('brain added');
+  //       // make sure list is updated appropriately
+  //   }).catch((e) =>   {
+  //       console.log(e);
+  //   });
+  // }
 
-  function newBrain(brainName, brainDescription, brainFiles) {
-    const data = {
-        name: brainName,
-        description: brainDescription,
-        files: brainFiles
-    };
-    const url = baseUrl + '/api/brains/';
+  function newBrain(formData) {
+    const url = baseUrl + `/api/brains/`;
     fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
+      method: 'POST',
+      body: formData // Directly use FormData here
     }).then((response) => {
-        if(!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
     }).then((data) => {
-        toggleShow();
-        console.log(data);
-        setBrains([...brains, data.brain]);
-        // make sure list is updated appropriately
-    }).catch((e) =>   {
-        console.log(e);
+      toggleShow();
+      console.log(data);
+      setBrains([...brains, data.brain]);
+      console.log('brain added');
+    }).catch((e) => {
+      console.log(e);
     });
   }
 
@@ -122,26 +152,28 @@ function FileManager() {
 
           const editBrain = <EditBrain
             id={brain.id}
-            name={brain.name} 
-            description={brain.description} 
+            name={brain.name}
+            description={brain.description}
             files={brain.files}
             updateBrain={updateBrain}
+            onUpdateBrain={handleBrainUpdate}
           />
 
           return (
             <>
-              <Brain 
+              <Brain
                 key={brain.id}
                 id={brain.id}
-                name={brain.name} 
+                name={brain.name}
                 description={brain.description}
                 files={brain.files}
                 alt='Brain icon'
                 editBrain={editBrain}
+                onDeleteBrain={() => handleDeleteBrain(brain.id)}
               />
             </>
           );
-          }) : null}
+        }) : null}
 
       </div>
 

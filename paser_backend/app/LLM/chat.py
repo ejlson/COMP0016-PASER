@@ -9,6 +9,75 @@ from .custom_chat import RetryAgentWorker
 from llama_index.core.agent import AgentRunner
 from .embeddings import EmbeddingsChromaDB
 
+from llama_index.core.storage.chat_store import SimpleChatStore
+from llama_index.core.memory import ChatMemoryBuffer
+import re
+
+from IPython.display import Markdown, display
+from llama_index.core import PromptTemplate
+
+
+
+custom_sub_q_prompt = PromptTemplate("""
+Given a user question, and a list of tools, output a list of relevant sub-questions in json markdown that when composed can help answer the full user question:
+(YOU MUST FOLLOW THE BELOW EXAMPLES EXACTLY, STRICT JSON FORMAT, WITH tool_name as key AND tool_description as value )
+# Example 1
+<Tools>
+```json
+{{
+    "uber_10k": "Provides information about Uber financials for year 2021",
+    "lyft_10k": "Provides information about Lyft financials for year 2021"
+}}
+```
+
+<User Question>
+Compare and contrast the revenue growth and EBITDA of Uber and Lyft for year 2021
+
+
+<Output>
+```json
+{{
+    "items": [
+        {{
+            "sub_question": "What is the revenue growth of Uber",
+            "tool_name": "uber_10k"
+        }},
+        {{
+            "sub_question": "What is the EBITDA of Uber",
+            "tool_name": "uber_10k"
+        }},
+        {{
+            "sub_question": "What is the revenue growth of Lyft",
+            "tool_name": "lyft_10k"
+        }},
+        {{
+            "sub_question": "What is the EBITDA of Lyft",
+            "tool_name": "lyft_10k"
+        }}
+    ]
+}}
+```
+
+# Example 2
+<Tools>
+```json
+{tools_str}
+```
+
+<User Question>
+{query_str}
+
+<Output>
+
+""")
+
+def display_prompt_dict(prompts_dict):
+    for k, p in prompts_dict.items():
+        text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
+        display(Markdown(text_md))
+        print(p.get_template())
+        display(Markdown("<br><br>"))
+
 class Chatbot:
     def __init__(self, embeddings):
         self.embeddings_chroma_db = embeddings
@@ -23,35 +92,49 @@ class Chatbot:
 
         query_engine_tools = self.create_query_tools(indices)
 
+
+        chat_store = SimpleChatStore()
+
+        chat_memory = ChatMemoryBuffer.from_defaults(
+            token_limit=3000,
+            chat_store=chat_store,
+            chat_store_key="user1",
+        )
+
         self.sub_query_engine = SubQuestionQueryEngine.from_defaults(
             query_engine_tools=query_engine_tools,
             use_async=True,
             llm=self.llm,
         )
 
+        self.sub_query_engine.update_prompts(
+            {"question_gen:question_gen_prompt": custom_sub_q_prompt
+             }
+)
+
+
         main_tool = self.create_main_tool()
 
-        query_engine_tools.append(main_tool)
 
         Settings.llm = self.llm
 
         Settings.context_window = 8000
 
         agent_worker = RetryAgentWorker.from_tools(
-            query_engine_tools,
+            [main_tool] + query_engine_tools,
             llm=self.llm,
             verbose=True,
             callback_manager=callback_manager,
         )
 
-        self.agent = AgentRunner(agent_worker, callback_manager=callback_manager)
+        self.agent = AgentRunner(agent_worker, callback_manager=callback_manager, memory=chat_memory)
 
     def create_main_tool(self):
         tool = QueryEngineTool(
             query_engine=self.sub_query_engine,
             metadata=ToolMetadata(
                 name="sub_question_query_engine",
-                description="useful for when you want to answer queries that require analyzing multiple organizations and/or timeframes"
+                description="useful for when you want to answer queries that require using multiple tools/indices"
             )
         )
 
@@ -62,9 +145,9 @@ class Chatbot:
         tools = []
 
         for name, index in indecies.items():
-            description = f"useful for searching documents by or about {name}"
+            description = f"useful for when you want to answer queries about {name}"
             tool = QueryEngineTool(
-                query_engine=index.as_query_engine(self.llm),
+                query_engine=index.as_query_engine(llm=self.llm),
                 metadata=ToolMetadata(
                     name=name,
                     description=description
@@ -80,9 +163,28 @@ class Chatbot:
             print(token, end='')
     
     def query(self, query_str):
-        response = self.agent.chat(query_str)
-        print(response)
-        return str(response)
+        prompts_dict = self.sub_query_engine.get_prompts()
+
+        display_prompt_dict(prompts_dict)
+
+        response = self.sub_query_engine.query(query_str)
+
+        out = str(response) # + self.get_sources(response)
+        return  out
+
+    def get_sources(self, response):   
+        if hasattr(response, 'metadata'):
+            document_info = response.metadata
+            print('\n\n'+'=' * 60)
+
+            print(document_info)
+            
+            out = ""
+            for val in document_info.values():
+                out += f"file : {val['file_name']} | page: {val['page_label']}"
+                out += ('\n'+'-' * 60 + '\n')
+
+            return out
 
 
 if __name__ == '__main__':

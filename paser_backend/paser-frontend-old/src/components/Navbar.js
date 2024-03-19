@@ -9,9 +9,6 @@ const navigation = [
 ]
 
 export default function Navbar(props) {
-
-    const presentation = 'bg-gray-400 backdrop-filter backdrop-blur-lg bg-opacity-30 text-white shadow shadow-blue-gray-900/4';
-    
     return (
         <>
             <Disclosure as="nav" className="">
@@ -31,7 +28,7 @@ export default function Navbar(props) {
                                                         return 'rounded-md px-2 py-2 text-sm font-medium text-decoration-none ' + 
                                                             (isActive 
                                                                 ? ' bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow shadow-blue-gray-900/1'
-                                                                : `${presentation} hover:bg-gray-500 hover:text-white hover:shadow-blue-gray-900/2`
+                                                                : ' text-gray-900 hover:bg-gray-400 hover:text-white shadow shadow-blue-gray-900/1'
                                                             );
                                                     }}
             
