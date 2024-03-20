@@ -14,13 +14,17 @@ from llama_index.core.memory import ChatMemoryBuffer
 import re
 
 from IPython.display import Markdown, display
-from llama_index.core import PromptTemplate
+from llama_index.core import PromptTemplate, SelectorPromptTemplate
 
 
 
 custom_sub_q_prompt = PromptTemplate("""
-Given a user question, and a list of tools, output a list of relevant sub-questions in json markdown that when composed can help answer the full user question:
-(YOU MUST FOLLOW THE BELOW EXAMPLES EXACTLY, STRICT JSON FORMAT, WITH tool_name as key AND tool_description as value )
+Given a user question, and a list of tools, output a list of relevant sub-questions in JSON markdown that when composed can help answer the full user question:
+Ensure the output follows strict JSON format with proper use of double quotes, brackets, and braces. If comments are included for explanation, ensure they are not part of the final JSON output.
+Tips:
+    When given a timeframe, make sub quries of several different years to adequately search for data throughout the timeframe
+                                        
+
 # Example 1
 <Tools>
 ```json
@@ -59,6 +63,9 @@ Compare and contrast the revenue growth and EBITDA of Uber and Lyft for year 202
 ```
 
 # Example 2
+                                     
+Put your subquestions into the JSON template below the output tag                                 
+                                    
 <Tools>
 ```json
 {tools_str}
@@ -68,12 +75,35 @@ Compare and contrast the revenue growth and EBITDA of Uber and Lyft for year 202
 {query_str}
 
 <Output>
+                                     
+{{
+    "items": [
+        {{
+            "sub_question": "<Sub query goes here>",
+            "tool_name": "<tool name goes here>"
+        }},
+        {{
+            "sub_question": "<Sub query goes here>",
+            "tool_name": "<tool name goes here>"
+        }},
+        {{
+            "sub_question": "<Sub query goes here>",
+            "tool_name": "<tool name goes here>"
+        }},
+        {{
+            "sub_question": "<Sub query goes here>",
+            "tool_name": "<tool name goes here>"
+        }}
+    ]
+}}
 
 """)
+
 
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
         text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
+        print(k)
         display(Markdown(text_md))
         print(p.get_template())
         display(Markdown("<br><br>"))
@@ -110,8 +140,11 @@ class Chatbot:
         self.sub_query_engine.update_prompts(
             {"question_gen:question_gen_prompt": custom_sub_q_prompt
              }
-)
+        )
 
+        #self.sub_query_engine.update_prompts()
+
+        display_prompt_dict(self.sub_query_engine.get_prompts())
 
         main_tool = self.create_main_tool()
 
@@ -163,26 +196,21 @@ class Chatbot:
             print(token, end='')
     
     def query(self, query_str):
-        prompts_dict = self.sub_query_engine.get_prompts()
-
-        display_prompt_dict(prompts_dict)
 
         response = self.sub_query_engine.query(query_str)
 
-        out = str(response) # + self.get_sources(response)
+        out = str(response) + self.get_sources(response)
         return  out
 
     def get_sources(self, response):   
         if hasattr(response, 'metadata'):
             document_info = response.metadata
-            print('\n\n'+'=' * 60)
-
-            print(document_info)
             
-            out = ""
+            out = ('\n' + '=' * 60 + '\n' + 'DOCUMENTS USED' + '\n' + '=' * 60 + '\n')
             for val in document_info.values():
-                out += f"file : {val['file_name']} | page: {val['page_label']}"
-                out += ('\n'+'-' * 60 + '\n')
+                if 'file_name' in val.keys() and 'page_label' in val.keys():
+                    out += f"file : {val['file_name']} | page: {val['page_label']}"
+                    out += ('\n' + '_' * 60 + '\n')
 
             return out
 
@@ -192,3 +220,4 @@ if __name__ == '__main__':
     chat = Chatbot(emb)
 
     chat.query('Compare how UNEP technology projects have differed in 2015 and 2022?')
+
