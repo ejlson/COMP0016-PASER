@@ -1,11 +1,12 @@
-__import__('pysqlite3')
+'''__import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')'''
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from llama_index.core.storage import StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, load_index_from_storage, Settings
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.core.node_parser import SentenceWindowNodeParser, SentenceSplitter
 import chromadb
 import sqlite3
 import os
@@ -16,12 +17,25 @@ class EmbeddingsChromaDB:
         self.db_path = db_path
         self.db = chromadb.PersistentClient(path="./chroma_db")
 
-        self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
-    
+        # old self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
+        self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
+        self.node_parser = self.create_node_parser()
+
         Settings.embed_model = self.embed_model
+        Settings.text_splitter = SentenceSplitter()
+
 
         self.indices = {}
         self.init_all_indices()
+
+    def create_node_parser(self):
+        node_parser = SentenceWindowNodeParser.from_defaults(
+            window_size=5,
+            window_metadata_key="window",
+            original_text_metadata_key="original_text",
+        )
+
+        return node_parser
 
 
     def get_collection_names(self):
@@ -54,18 +68,15 @@ class EmbeddingsChromaDB:
         chroma_collection = self.db.get_collection(name=f"{index_id}")
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
         storage_context = StorageContext.from_defaults(persist_dir=f"./chroma_db/{index_id}", vector_store=vector_store)
-        index = VectorStoreIndex.from_vector_store(vector_store=vector_store, storage_context=storage_context)
+        index = VectorStoreIndex.from_vector_store(vector_store=vector_store, storage_context=storage_context) # , top_k=5)
 
         return index
 
     def add_docs_to_index(self, doc_paths, index):
-        if not self.index:
-            self.init_vector_index()
-
         docs = self.load_docs(doc_paths)
-
+        nodes = self.node_parser.get_nodes_from_documents(docs)
         for doc in docs:
-            index.insert(doc)     
+            index.insert_nodes(nodes)
 
     def load_docs(self, doc_paths):
         docs = []
@@ -86,10 +97,12 @@ class EmbeddingsChromaDB:
         self.chroma_collection = self.db.create_collection(name=f"{title}")
         vector_store = ChromaVectorStore(chroma_collection=self.chroma_collection)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        index = VectorStoreIndex.from_documents(docs , vector_store=vector_store, storage_context=storage_context)
+        nodes = self.node_parser.get_nodes_from_documents(docs)
+        index = VectorStoreIndex(nodes, vector_store=vector_store, storage_context=storage_context)
         index.set_index_id(title)
         storage_context.persist(persist_dir=f"./chroma_db/{title}")
-        
+
+
 
 
 if __name__ == '__main__':

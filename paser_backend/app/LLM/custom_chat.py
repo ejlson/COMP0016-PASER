@@ -49,8 +49,6 @@ Format for Queries About Timeframes:
 
 Output Format:
 <main body response>
-
-DOCUMENTS_USED: <document title(s)>
 """
 
 def get_chat_prompt_template(
@@ -114,6 +112,7 @@ class RetryAgentWorker(CustomSimpleAgentWorker):
             query_engine_tools=tools,
             verbose=kwargs.get("verbose", True),
         )
+
         super().__init__(
             tools=tools,
             **kwargs,

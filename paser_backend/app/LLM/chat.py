@@ -8,7 +8,7 @@ from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 from .custom_chat import RetryAgentWorker
 from llama_index.core.agent import AgentRunner
 from .embeddings import EmbeddingsChromaDB
-
+from llama_index.core.postprocessor import MetadataReplacementPostProcessor
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
 import re
@@ -19,8 +19,11 @@ from llama_index.core import PromptTemplate, SelectorPromptTemplate
 
 
 custom_sub_q_prompt = PromptTemplate("""
-Given a user question, and a list of tools, output a list of relevant sub-questions in JSON markdown that when composed can help answer the full user question:
-Ensure the output follows strict JSON format with proper use of double quotes, brackets, and braces. If comments are included for explanation, ensure they are not part of the final JSON output.
+Given a user question, and a list of tools, output a list of relevant sub-questions that when composed can help answer the full user question:
+follow this output format:
+```json
+{{"items": [{{"sub_question": "", "tool_name": ""}}, {{"sub_question": "", "tool_name": ""}}]}}
+```
 Tips:
     When given a timeframe, make sub quries of several different years to adequately search for data throughout the timeframe
                                         
@@ -134,7 +137,7 @@ class Chatbot:
         self.sub_query_engine = SubQuestionQueryEngine.from_defaults(
             query_engine_tools=query_engine_tools,
             use_async=True,
-            llm=self.llm,
+            llm=self.llm
         )
 
         self.sub_query_engine.update_prompts(
@@ -180,7 +183,14 @@ class Chatbot:
         for name, index in indecies.items():
             description = f"useful for when you want to answer queries about {name}"
             tool = QueryEngineTool(
-                query_engine=index.as_query_engine(llm=self.llm),
+                query_engine=index.as_query_engine(
+                    llm=self.llm, 
+                    similarity_top_k=5,
+                    # the target key defaults to `window` to match the node_parser's default
+                    node_postprocessors=[
+                        MetadataReplacementPostProcessor(target_metadata_key="window")
+                    ]
+                ),
                 metadata=ToolMetadata(
                     name=name,
                     description=description
@@ -206,11 +216,11 @@ class Chatbot:
         if hasattr(response, 'metadata'):
             document_info = response.metadata
             
-            out = ('\n' + '=' * 60 + '\n' + 'DOCUMENTS USED' + '\n' + '=' * 60 + '\n')
+            out = ('\n' + '_' * 60 + '\n' + 'DOCUMENTS USED:' + '\n')
             for val in document_info.values():
                 if 'file_name' in val.keys() and 'page_label' in val.keys():
-                    out += f"file : {val['file_name']} | page: {val['page_label']}"
-                    out += ('\n' + '_' * 60 + '\n')
+                    out += f"file : {val['file_name']} | page: {val['page_label']}\n"
+                    #out += ('\n' + '_' * 60 + '\n')
 
             return out
 
