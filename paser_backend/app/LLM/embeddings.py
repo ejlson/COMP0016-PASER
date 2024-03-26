@@ -17,8 +17,8 @@ class EmbeddingsChromaDB:
         self.db_path = db_path
         self.db = chromadb.PersistentClient(path="./chroma_db")
 
-        # old self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
-        self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
+        self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
+        #self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
         self.node_parser = self.create_node_parser()
 
         Settings.embed_model = self.embed_model
@@ -30,7 +30,7 @@ class EmbeddingsChromaDB:
 
     def create_node_parser(self):
         node_parser = SentenceWindowNodeParser.from_defaults(
-            window_size=5,
+            window_size=7,
             window_metadata_key="window",
             original_text_metadata_key="original_text",
         )
@@ -108,6 +108,8 @@ class EmbeddingsChromaDB:
 if __name__ == '__main__':
     emb = EmbeddingsChromaDB()
 
-    #emb.create_new_index('/Users/antonzhulkovskiy/Desktop/paser/COMP0016-PASER/paser_backend/app/LLM/Reports/Annual_Report_2015.pdf', '2015')
+    actors = ['unep', 'lter', 'gpai']
+    for actor in actors:
+        emb.create_new_index(f'/Users/antonzhulkovskiy/Desktop/paser/research_actors/{actor}', actor)
     
-    #emb.init_vector_indices('2015')
+    emb.init_all_indices()

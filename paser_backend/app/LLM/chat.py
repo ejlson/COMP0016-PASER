@@ -19,7 +19,7 @@ from llama_index.core import PromptTemplate, SelectorPromptTemplate
 
 
 custom_sub_q_prompt = PromptTemplate("""
-Given a user question, and a list of tools, output a list of relevant sub-questions that when composed can help answer the full user question:
+Given a user question, and a list of tools, output a list of relevant sub-quries that will be used to find most relevant context in embeddings in json markdown that when composed can help answer the full user question (make sure the relevant organisations tools are selected):
 follow this output format:
 ```json
 {{"items": [{{"sub_question": "", "tool_name": ""}}, {{"sub_question": "", "tool_name": ""}}]}}
@@ -43,32 +43,11 @@ Compare and contrast the revenue growth and EBITDA of Uber and Lyft for year 202
 
 <Output>
 ```json
-{{
-    "items": [
-        {{
-            "sub_question": "What is the revenue growth of Uber",
-            "tool_name": "uber_10k"
-        }},
-        {{
-            "sub_question": "What is the EBITDA of Uber",
-            "tool_name": "uber_10k"
-        }},
-        {{
-            "sub_question": "What is the revenue growth of Lyft",
-            "tool_name": "lyft_10k"
-        }},
-        {{
-            "sub_question": "What is the EBITDA of Lyft",
-            "tool_name": "lyft_10k"
-        }}
-    ]
-}}
+{{"items": [{{"sub_question": "What is the revenue growth of Uber","tool_name": "uber_10k"}},{{"sub_question": "What is the EBITDA of Uber","tool_name": "uber_10k"}},{{"sub_question": "What is the revenue growth of Lyft","tool_name": "lyft_10k"}},{{"sub_question": "What is the EBITDA of Lyft","tool_name": "lyft_10k"}}]}}
 ```
-
-# Example 2
                                      
-Put your subquestions into the JSON template below the output tag                                 
-                                    
+# YOUR TURN, FILL IN THE TEMPLATE UNDER THE <Output> tag.
+                                                                         
 <Tools>
 ```json
 {tools_str}
@@ -78,28 +57,9 @@ Put your subquestions into the JSON template below the output tag
 {query_str}
 
 <Output>
-                                     
-{{
-    "items": [
-        {{
-            "sub_question": "<Sub query goes here>",
-            "tool_name": "<tool name goes here>"
-        }},
-        {{
-            "sub_question": "<Sub query goes here>",
-            "tool_name": "<tool name goes here>"
-        }},
-        {{
-            "sub_question": "<Sub query goes here>",
-            "tool_name": "<tool name goes here>"
-        }},
-        {{
-            "sub_question": "<Sub query goes here>",
-            "tool_name": "<tool name goes here>"
-        }}
-    ]
-}}
-
+```json                                     
+{{"items": [{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}},{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}},{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}},{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}}]}}
+```
 """)
 
 
@@ -139,6 +99,7 @@ class Chatbot:
             use_async=True,
             llm=self.llm
         )
+        
 
         self.sub_query_engine.update_prompts(
             {"question_gen:question_gen_prompt": custom_sub_q_prompt
@@ -147,7 +108,7 @@ class Chatbot:
 
         #self.sub_query_engine.update_prompts()
 
-        display_prompt_dict(self.sub_query_engine.get_prompts())
+        #display_prompt_dict(self.sub_query_engine.get_prompts())
 
         main_tool = self.create_main_tool()
 
