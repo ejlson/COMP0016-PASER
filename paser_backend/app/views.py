@@ -12,8 +12,6 @@ from .LLM.singleton import ChatSingleton
 def filemanager(request):
     return render(request, 'index.html')
 
-# from .srcs.ChatbotEmbeddings import ChatBot
-
 def index(request):
     return render(request, 'index.html')
 

@@ -1,67 +1,16 @@
-from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.core import ChatPromptTemplate, Settings
+from llama_index.core import Settings
 from llama_index.llms.ollama import Ollama
 
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
-from .custom_chat import RetryAgentWorker
 from llama_index.core.agent import AgentRunner
 from .embeddings import EmbeddingsChromaDB
 from llama_index.core.postprocessor import MetadataReplacementPostProcessor
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
-import re
-
 from IPython.display import Markdown, display
-from llama_index.core import PromptTemplate, SelectorPromptTemplate
-
-
-
-custom_sub_q_prompt = PromptTemplate("""
-Given a user question, and a list of tools, output a list of relevant sub-quries that will be used to find most relevant context in embeddings in json markdown that when composed can help answer the full user question (make sure the relevant organisations tools are selected):
-follow this output format:
-```json
-{{"items": [{{"sub_question": "", "tool_name": ""}}, {{"sub_question": "", "tool_name": ""}}]}}
-```
-Tips:
-    When given a timeframe, make sub quries of several different years to adequately search for data throughout the timeframe
-                                        
-
-# Example 1
-<Tools>
-```json
-{{
-    "uber_10k": "Provides information about Uber financials for year 2021",
-    "lyft_10k": "Provides information about Lyft financials for year 2021"
-}}
-```
-
-<User Question>
-Compare and contrast the revenue growth and EBITDA of Uber and Lyft for year 2021
-
-
-<Output>
-```json
-{{"items": [{{"sub_question": "What is the revenue growth of Uber","tool_name": "uber_10k"}},{{"sub_question": "What is the EBITDA of Uber","tool_name": "uber_10k"}},{{"sub_question": "What is the revenue growth of Lyft","tool_name": "lyft_10k"}},{{"sub_question": "What is the EBITDA of Lyft","tool_name": "lyft_10k"}}]}}
-```
-                                     
-# YOUR TURN, FILL IN THE TEMPLATE UNDER THE <Output> tag.
-                                                                         
-<Tools>
-```json
-{tools_str}
-```
-
-<User Question>
-{query_str}
-
-<Output>
-```json                                     
-{{"items": [{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}},{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}},{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}},{{"sub_question": "<Sub query goes here>","tool_name": "<tool name goes here>"}}]}}
-```
-""")
-
+from .prompts import INITIAL_RESPONSE, SUB_QUERY_PROMPT, FINAL_RESPONSE
 
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
@@ -78,8 +27,8 @@ class Chatbot:
 
         llama_debug = LlamaDebugHandler(print_trace_on_end=True)
         callback_manager = CallbackManager([llama_debug])
-
         Settings.callback_manager = callback_manager
+
 
         indices = self.embeddings_chroma_db.indices
 
@@ -102,41 +51,16 @@ class Chatbot:
         
 
         self.sub_query_engine.update_prompts(
-            {"question_gen:question_gen_prompt": custom_sub_q_prompt
+            {"question_gen:question_gen_prompt": SUB_QUERY_PROMPT,
+             "response_synthesizer:text_qa_template": INITIAL_RESPONSE,
+             "response_synthesizer:refine_template": FINAL_RESPONSE
              }
         )
 
-        #self.sub_query_engine.update_prompts()
-
-        #display_prompt_dict(self.sub_query_engine.get_prompts())
-
-        main_tool = self.create_main_tool()
-
+        display_prompt_dict(self.sub_query_engine.get_prompts())
 
         Settings.llm = self.llm
-
         Settings.context_window = 8000
-
-        agent_worker = RetryAgentWorker.from_tools(
-            [main_tool] + query_engine_tools,
-            llm=self.llm,
-            verbose=True,
-            callback_manager=callback_manager,
-        )
-
-        self.agent = AgentRunner(agent_worker, callback_manager=callback_manager, memory=chat_memory)
-
-    def create_main_tool(self):
-        tool = QueryEngineTool(
-            query_engine=self.sub_query_engine,
-            metadata=ToolMetadata(
-                name="sub_question_query_engine",
-                description="useful for when you want to answer queries that require using multiple tools/indices"
-            )
-        )
-
-        return tool
-
 
     def create_query_tools(self, indecies):
         tools = []
@@ -146,7 +70,7 @@ class Chatbot:
             tool = QueryEngineTool(
                 query_engine=index.as_query_engine(
                     llm=self.llm, 
-                    similarity_top_k=5,
+                    similarity_top_k=2,
                     # the target key defaults to `window` to match the node_parser's default
                     node_postprocessors=[
                         MetadataReplacementPostProcessor(target_metadata_key="window")
@@ -178,12 +102,12 @@ class Chatbot:
             document_info = response.metadata
             
             out = ('\n' + '_' * 60 + '\n' + 'DOCUMENTS USED:' + '\n')
-            for val in document_info.values():
-                if 'file_name' in val.keys() and 'page_label' in val.keys():
-                    out += f"file : {val['file_name']} | page: {val['page_label']}\n"
-                    #out += ('\n' + '_' * 60 + '\n')
-
-            return out
+            if document_info:
+                for val in document_info.values():
+                    if 'file_name' in val.keys() and 'page_label' in val.keys():
+                        out += f"file : {val['file_name']} | page: {val['page_label']}\n"
+                return out
+            return ""
 
 
 if __name__ == '__main__':

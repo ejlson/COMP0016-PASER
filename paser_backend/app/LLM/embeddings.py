@@ -18,7 +18,6 @@ class EmbeddingsChromaDB:
         self.db = chromadb.PersistentClient(path="./chroma_db")
 
         self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
-        #self.embed_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
         self.node_parser = self.create_node_parser()
 
         Settings.embed_model = self.embed_model

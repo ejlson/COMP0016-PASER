@@ -1,2 +1,4 @@
 chroma_db/
 venv/
+chroma_db_old/
+__pycache__/
