@@ -1,7 +1,3 @@
-'''__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')'''
-
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from llama_index.core.storage import StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -58,7 +54,6 @@ class EmbeddingsChromaDB:
 
     def init_all_indices(self):
         collections = self.get_collection_names()
-        print(collections)
         for collection in collections:
             self.indices[collection] = self.init_vector_index(collection)
 
@@ -71,23 +66,27 @@ class EmbeddingsChromaDB:
 
         return index
 
-    def add_docs_to_index(self, doc_paths, index):
-        docs = self.load_docs(doc_paths)
-        nodes = self.node_parser.get_nodes_from_documents(docs)
-        for doc in docs:
-            index.insert_nodes(nodes)
+    def add_docs_to_index(self, doc_path, index):
+        indices = self.get_collection_names()
+        try:
+            if index not in indices:
+                self.create_new_index(doc_path, index)
+            else:
+                docs = self.load_docs([doc_path])
+                nodes = self.node_parser.get_nodes_from_documents(docs)
+                index.insert_nodes(nodes)
+        except ValueError:
+            print("File failed to upload due to incorrect save format or filename.")
 
     def load_docs(self, doc_paths):
         docs = []
         for doc_path in doc_paths:
             # if path is a directory
             if os.path.isdir(doc_path):
-                reader = SimpleDirectoryReader(input_dir=doc_path, recursive=True, required_exts=[".pdf", ".docx"])
+                reader = SimpleDirectoryReader(input_dir=doc_path, recursive=True, required_exts=[".pdf", ".docx", "pptx"])
                 doc = reader.load_data()
-                print(f'{len(doc)}\n\n {doc[500].get_content}')
                 docs.extend(doc)
             else:
-                # MUST BE TESTED
                 docs.extend(SimpleDirectoryReader(input_files=[doc_path]).load_data())
         return docs
 

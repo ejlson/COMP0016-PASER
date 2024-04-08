@@ -10,19 +10,13 @@ export default function EditBrain(props) {
     const [brainDescription, setBrainDescription] = useState(props.description);
     const [brainFiles, setBrainFiles] = useState(props.files);
 
-    const [brain, setBrain] = useState();
-    const [tempBrain, setTempBrain] = useState();
-    const [tempBrainName, setTempBrainName] = useState(props.name);
-    const [tempBrainDescription, setTempBrainDescription] = useState(props.description);
-    const [tempBrainFiles, setTempBrainFiles] = useState(props.files);
-    const [notFound, setNotFound] = useState();
-
     /* Modal toggle logic */
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
     /* New files upload logic */
+    const [files, setFiles] = useState([]);
     const [newFiles, setNewFiles] = useState([]);
     const [filesToDelete, setFilesToDelete] = useState([]);
 
@@ -41,84 +35,124 @@ export default function EditBrain(props) {
         setFilesToDelete(prev => [...prev, fileId]);
     };
 
+    /* Validate brain name with similar logic as the AddBrain component */
+    const [brainNameError, setBrainNameError] = useState('');
+    const validateBrainName = () => {
+        const regex = /^[a-zA-Z0-9 ]+$/;
+        if (brainName.length < 3 && !regex.test(brainName)) {
+            setBrainNameError("Brain name must be at least 3 characters long and cannot contain special characters.");
+            return false;
+        } else if (brainName.length < 3) {
+            setBrainNameError("Brain name must be at least 3 characters long.");
+            return false;
+        } else if (!regex.test(brainName)) {
+            setBrainNameError("Brain name cannot contain special characters.");
+            return false;
+        }
+        setBrainNameError(""); // No error
+        return true;
+    };
+
     const handleFileUpload = (fileOrFiles) => {
-        // Assuming 'files' is an array of file objects
-        // Append the newly selected files to the existing 'newFiles' state
         const filesArray = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
         setNewFiles(prevFiles => [...prevFiles, ...filesArray]);
-
-        // Update UI immediately for user feedback
         const updatedBrainFiles = [...brainFiles];
-        // filesArray.forEach(file => {
-        //     const filePreview = URL.createObjectURL(file);
-        //     updatedBrainFiles.push({ file: filePreview, name: file.name, isNew: true });
-        // });
-        // setBrainFiles(updatedBrainFiles);
         filesArray.forEach(file => {
             if (file instanceof File) {
                 const filePreview = URL.createObjectURL(file);
                 updatedBrainFiles.push({
-                    file: filePreview, // URL for use in <img> src or similar
+                    file: filePreview,
                     name: file.name,
-                    isNew: true // Mark the file as new
+                    isNew: true
                 });
             }
         });
-        setBrainFiles(updatedBrainFiles);  // Update state to trigger re-render
+        setBrainFiles(updatedBrainFiles);
+        console.log(updatedBrainFiles);
+        // const filesArray = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+        // const newFilesWithPreview = filesArray.map(file => ({
+        //     id: null,
+        //     file: URL.createObjectURL(file), 
+        //     name: file.name,
+        //     isNew: true, 
+        // }));
+
+        // setNewFiles(prev => [...prev, ...filesArray]);
+        // setBrainFiles(prev => [...prev, ...newFilesWithPreview]);
     };
+
+    // const handleFileUpload = (fileOrFiles) => {
+    //     const filesArray = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+    //     const newFilesWithPreview = filesArray.map(file => ({
+    //         id: null, // Assuming existing files have an 'id' from the backend and new ones don't yet
+    //         file: URL.createObjectURL(file), // For immediate preview
+    //         name: file.name,
+    //         isNew: true // Flag to identify new files
+    //     }));
+
+    //     setBrainFiles(prevFiles => [...prevFiles, ...newFilesWithPreview]);
+    // };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateBrainName()) {
+            return;
+        }
         const formData = new FormData();
         newFiles.forEach((file) => {
             formData.append('files', file);
         });
-        // Assuming 'filesToDelete' contains the IDs of files to delete
         formData.append('filesToDelete', JSON.stringify(filesToDelete));
         formData.append('name', brainName);
         formData.append('description', brainDescription);
         const csrfToken = getCookie('csrftoken');
         // Adjust the URL and headers as necessary
-        fetch(`http://localhost:8000/brains/${props.id}/`, {
-            method: 'PATCH',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken,
-            },
-            // Headers may need to include CSRF token etc., depending on your backend setup
-        })
-        .then(response => response.json())
-        .then(data => {
+        // fetch(`http://localhost:8000/brains/${props.id}/`, {
+        //     method: 'PATCH',
+        //     body: formData,
+        //     headers: {
+        //         'X-CSRFToken': csrfToken,
+        //     },
+        // })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         console.log(data);
+        //         if (data && data.brain) {
+        //             setBrainFiles(data.brain.files);
+        //             props.onUpdateBrain(data.brain);
+        //             setNewFiles([]);
+        //             handleClose();
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error updating brain:', error);
+        //     });
+        try {
+            const response = await fetch(`http://localhost:8000/brains/${props.id}/`, {
+                method: 'PATCH',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const data = await response.json();
             console.log(data);
             if (data && data.brain) {
-                setBrainFiles(data.brain.files); // Update local state if needed
-                props.onUpdateBrain(data.brain); // Notify parent component about the update
+                setBrainFiles(data.brain.files);
+                props.onUpdateBrain(data.brain);
+                setNewFiles([]);
+                setShow(false);
             }
-            setNewFiles([]); // Clear newFiles as they are now part of brainFiles
-            handleClose(); // Close the modal on success
-        })
-        .catch(error => {
+        } catch (error) {
             console.error('Error updating brain:', error);
-        });
+        }
+        window.location.reload();
     };
-    
-
-    useEffect(() => {
-        fetch('http://localhost:8000/api/brains/' + props.id)
-            .then((response) => {
-                if (response.status === 404) {
-                    setNotFound(true);
-                }
-                return response.json();
-            })
-            .then((data) => {
-                setBrain(data.brain);
-                setTempBrain(data.brain);
-            })
-    }, []);
 
     /* DELETE FILES IN BRAIN */
-
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -144,7 +178,7 @@ export default function EditBrain(props) {
             </button>
 
             <Modal
-                size='xl'
+                size='l'
                 show={show}
                 onHide={handleClose}
                 backdrop="static"
@@ -153,123 +187,106 @@ export default function EditBrain(props) {
                 <Modal.Header closeButton>
                     <Modal.Title>Edit Brain</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className="max-h-[73vh] overflow-auto space-y-6">
 
                     <form
                         id='edit-brain'
-                        className="w-full"
-                        // onSubmit={ (e) => {
-                        //     // {
-                        //     e.preventDefault();
-                        //     console.log(props.id, brainName, brainDescription, brainFiles)
-                        //     props.updateBrain(props.id, brainName, brainDescription, brainFiles);
-                        //     }
-                        //     // handleSubmit
-                        // }
+                        className="w-full space-y-4"
                         onSubmit={handleSubmit}
                     >
                         {/* Brain Name */}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
-                                    Brain Name
-                                </label>
-                                <input
-                                    className="appearance-none h-10 block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
-                                    id="brain-name"
-                                    value={brainName}
-                                    type="text"
-                                    placeholder="Name"
-
-                                    onChange={(e) => {
-                                        // setTempBrain({
-                                        //     ...tempBrain,
-                                        //     name:  e.target.value,
-                                        // });
-                                        setBrainName(e.target.value);
-                                    }}
-                                />
+                        <div className="mb-4">
+                            <label htmlFor="brain-name" className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">
+                                Brain Name
+                            </label>
+                            <input
+                                id="brain-name"
+                                type="text"
+                                value={brainName}
+                                onChange={(e) => setBrainName(e.target.value)}
+                                className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                                required
+                            />
+                            <div className="mt-1">
+                                {brainNameError && <p className="text-red-500 text-xs italic mb-1">{brainNameError}</p>}
                             </div>
-
+                            <div>
+                                <p className="text-gray-600 text-xs italic">Name must be at least 3 characters long and cannot contain special characters: -`!@#$£%^&amp;*()_-+={ }[]|`:;"'&lt;,&gt;.?/</p>
+                            </div>
                         </div>
+
                         {/* Brain Description */}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            <div className="w-full px-3">
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-password">
-                                    Description
-                                </label>
-                                <input
-                                    rows='4'
-                                    className="appearance-none h-10 block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
-                                    id="brain-description"
-                                    value={brainDescription}
-                                    type="text"
-                                    placeholder="Brain Description"
+                        <div className="mb-4">
+                            <label htmlFor="brain-description" className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">
+                                Description
+                            </label>
+                            <textarea
+                                id="brain-description"
+                                value={brainDescription}
+                                onChange={(e) => setBrainDescription(e.target.value)}
+                                className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                                rows="3"
+                                required
+                            ></textarea>
+                        </div>
 
-                                    // onChange={(e) => {
-                                    //     setTempBrain({
-                                    //         ...tempBrain,
-                                    //         description:  e.target.value,
-                                    //     });
-                                    // }}
-                                    onChange={(e) => {
-                                        setBrainDescription(e.target.value)
-                                    }}
-                                />
-                                <p className="text-gray-600 text-xs italic">Make it as long and as crazy as you'd like</p>
-                            </div>
-                        </div>
-                        {/* Upload Files */}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            <div className='w-full px-3'>
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="multiple_files">Upload multiple files</label>
-                                {/* <input
-                                    className=""
-                                    id="multiple_files"
-                                    type="file"
-                                    multiple
-                                    placeholder='Upload file'
-                                    onChange={(e) => setNewFiles([...newFiles, ...e.target.files])} // Append new files to the existing list
-                                /> */}
-                                <FileUploader 
-                                    name="file" 
-                                    types={fileTypes} 
-                                    multiple={true} 
-                                    handleChange={handleFileUpload} 
-                                    onChange={(e) => setNewFiles([...newFiles, ...e.target.files])}
+                        {/* Upload Files Section */}
+                        <div className="mb-4">
+                            <div className="mb-2">
+                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" htmlFor="multiple_files">Upload new files</label>
+                                <FileUploader
+                                    name="files"
+                                    types={fileTypes}
+                                    multiple={true}
+                                    handleChange={handleFileUpload}
                                 />
                             </div>
                         </div>
-                        {/* File List */}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            <div className='w-full px-3'>
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="multiple_files">
-                                    Uploaded files
-                                </label>
-                                <ul className='space-y-2'>
-                                    {brainFiles.map((file, index) => (
-                                        <li key={index} className='flex flex-row border border-gray-400 px-4 py-2'>
-                                            {file.file}
-                                            <button onClick={() => setFilesToDelete([...filesToDelete, file.id])} className='inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-blue-700'>Delete</button>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="multiple_files">
-                                    New files
-                                </label>
-                                <ul className='space-y-2'>
-                                    {newFiles.map((file, index) => (
-                                        <li key={`new-${index}` } className='flex flex-row border border-gray-400 px-4 py-2'>
-                                            New File: {file.file}
-                                            <button 
-                                                onClick={() => handleMarkFileForDeletion(file.id)}
-                                                className='inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-blue-700'
-                                            >
-                                                Remove
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
+
+                        {/* Uploaded Files Section */}
+                        <div className='mb-4'>
+                            <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">
+                                Uploaded files
+                            </label>
+                            {/* <div className="border-t border-gray-200 pt-4 space-y-2 max-h-48 overflow-y-auto">
+                                {brainFiles.map((file, index) => (
+                                    <div key={index} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
+                                        <span className="text-sm">{file.file.replace('/media/brains/', '')}</span>
+                                        <button
+                                            onClick={() => handleDeleteExistingFile(file.id)}
+                                            className="text-white bg-red-500 px-3 py-1 rounded hover:bg-red-700 transition-colors duration-150"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                ))}
+                            </div> */}
+                            {/* <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {brainFiles.map((file, index) => (
+                                    <div key={index} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
+                                        <span className="text-sm">{file.file.replace('/media/brains/', '')}</span>
+                                        <button
+                                            onClick={() => file.isNew ? handleRemoveNewFile(index) : handleDeleteExistingFile(file.id)}
+                                            className="text-white bg-red-500 px-3 py-1 rounded hover:bg-red-700 transition-colors duration-150"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                ))}
+                            </div> */}
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {brainFiles.map((file, index) => (
+                                    <div key={index} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
+                                        {/* Show the file name for new files directly, for existing files, strip the path if needed */}
+                                        <span className="text-sm">{file.isNew ? file.name : file.file.replace('/media/brains/', '')}</span>
+                                        <button
+                                            onClick={() => file.isNew ? handleRemoveNewFile(index) : handleDeleteExistingFile(file.id)}
+                                            className="text-white bg-red-500 px-3 py-1 rounded hover:bg-red-700 transition-colors duration-150"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </form>
@@ -283,9 +300,9 @@ export default function EditBrain(props) {
                         Cancel
                     </button>
                     <button
+                        type='submit'
                         form='edit-brain'
                         className='inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'
-                        onClick={handleClose}
                     >
                         Update
                     </button>

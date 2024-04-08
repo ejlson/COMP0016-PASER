@@ -16,8 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BrainViewSet, chat_view, chat, filemanager
+from .views import chat_view, chat, filemanager, BrainViewSet, upload_brain_file, BrainUpdateView, BrainDetailView, BrainCreateView
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 from app import views
 
@@ -26,12 +28,18 @@ router.register(r'brains', BrainViewSet)
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('brains/<int:pk>/', BrainDetailView.as_view(), name='brain-detail'),
+    path('brains/<int:pk>/', BrainUpdateView.as_view(), name='brain-update'),
+    path('api/brains/create/', BrainCreateView.as_view(), name='brain-create'),
+    path('api/brains/<int:pk>/', BrainDetailView.as_view(), name='brain-detail'),
     path('filemanager/', filemanager, name='filemanager'),  # new URL pattern
     path('admin/', admin.site.urls),
     path('api/brains/', views.brains, name='brains'),
     path('api/brains/<int:id>', views.brain, name='brain'),
     path('api/chat/', views.chat, name='chat'),
     path('api/chatbot/', views.chat_view, name='chat_view'),
+    path('api/brains/<int:id>/', BrainUpdateView.as_view(), name='brain-update'),
     path('', include(router.urls)),
-]
+    path('api/brains/<int:brain_id>/files/', views.upload_brain_file, name='brain_files'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

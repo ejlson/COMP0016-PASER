@@ -15,7 +15,8 @@ class UploadToPathAndRename(object):
         return format.format(id=brain_id, file=filename)
 
 class File(models.Model):
-    file = models.FileField(upload_to=UploadToPathAndRename('brains/'))
+    # file = models.FileField(upload_to=UploadToPathAndRename('brains/'))
+    file = models.FileField(upload_to='brains/', default='file')
     brain = models.ForeignKey('Brain', related_name='files', on_delete=models.CASCADE)
 
 class Brain(models.Model):

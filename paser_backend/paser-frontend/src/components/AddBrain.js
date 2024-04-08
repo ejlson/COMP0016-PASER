@@ -1,3 +1,16 @@
+/*
+
+    ADD BRAIN:
+        - This component is a modal that allows the user to add a new brain.
+        - The user can input a brain name, description, and upload files.
+        - The user can upload multiple files at once.
+            - The user can only upload files with the following extensions: JPEG, PNG, GIF, PPTX, PDF.
+        - Then the user can submit the form to add the brain.
+        - This is done via a POST request through formData to the server.
+
+*/
+
+
 import { useState, useEffect } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
@@ -28,11 +41,56 @@ export default function AddBrain(props) {
 
 
 
+    /* ========== START OF NEW FILE LOGIC ========== */
+    const fileTypes = ["JPEG", "PNG", "GIF", "PPTX", "PDF"];
+    const [files, setFiles] = useState([]);
+    const handleChange = (newFiles) => {
+        setFiles(prevFiles => [...prevFiles, ...newFiles]);
+    };
+    const handleDelete = (index) => {
+        setFiles(files.filter((_, i) => i !== index));
+    };
+    // Permanent state for files to be displayed
+    const [fileArray, setFileArray] = useState([]);
+    // Effect to log fileArray whenever it changes
+    useEffect(() => {
+        console.log("Current files in the array:", files);
+    }, [files]); // Dependency array includes fileArray
+
+    /* ========== END OF NEW FILE LOGIC ========== */
+
+    const [brainNameError, setBrainNameError] = useState('');
+    const validateBrainName = () => {
+        const regex = /^[a-zA-Z0-9 ]+$/; // Regex to allow only alphanumeric characters and spaces
+        if (brainName.length < 3 && !regex.test(brainName)) {
+            // Brain name is too short and contains special characters
+            setBrainNameError("Brain name must be at least 3 characters long and cannot contain special characters: -`!@#$£%^&*()_-+={}[]|`:;'<,>.?/");
+            return false;
+        } else if (brainName.length < 3) {
+            // Brain name is too short
+            setBrainNameError("Brain name must be at least 3 characters long.");
+            return false;
+        } else if (!regex.test(brainName)) {
+            // Brain name contains special characters
+            setBrainNameError("Brain name cannot contain special characters: -`!@#$£%^&*()_-+={}[]|`:;'<,>.?/");
+            return false;
+        }
+        setBrainNameError(""); // No error
+        return true;
+    };
+
+
     /* ========== START OF SUBMIT LOGIC ========== */
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
+        // Validate brain name before proceeding
+        if (!validateBrainName()) {
+            // Don't proceed with form submission if validation fails
+            return;
+        }
+
         let formData = new FormData();
         formData.append('name', brainName);
         formData.append('description', brainDescription);
@@ -40,45 +98,25 @@ export default function AddBrain(props) {
             formData.append('files', file);
         });
 
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }
+
+        console.log(formData.getAll('files'));
         props.newBrain(formData);
 
         // reset state after submission
         setBrainName('');
         setBrainDescription('');
         setFiles([]);
-    
+
     };
 
     /* ========== END OF SUBMIT LOGIC ========== */
 
+    /* ========== START OF TESTS ========== */
 
-
-
-
-    /* ========== START OF NEW FILE LOGIC ========== */
-
-    const fileTypes = ["JPEG", "PNG", "GIF", "PPTX", "PDF"];
-    const [files, setFiles] = useState([]);
-
-    const handleChange = (newFiles) => {
-        setFiles(prevFiles => [...prevFiles, ...newFiles]);
-    };
-
-    const handleDelete = (index) => {
-        setFiles(files.filter((_, i) => i !== index));
-    };
-
-    // Permanent state for files to be displayed
-    const [fileArray, setFileArray] = useState([]);
-
-
-    // Effect to log fileArray whenever it changes
-    useEffect(() => {
-        console.log("Current files in the array:", files);
-        console.log('brain:', );
-    }, [files]); // Dependency array includes fileArray
-
-     /* ========== END OF NEW FILE LOGIC ========== */
+    /* ========== END OF TESTS ========== */
 
     return (
         <>
@@ -97,7 +135,7 @@ export default function AddBrain(props) {
             </div>
 
             <Modal
-                size='xl'
+                size='l'
                 show={props.show}
                 onHide={handleClose}
                 backdrop="static"
@@ -106,83 +144,88 @@ export default function AddBrain(props) {
                 <Modal.Header closeButton>
                     <Modal.Title>Add Brain</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className="max-h-[73vh] overflow-auto">
 
                     <form
                         id='edit-brain'
                         className="w-full max-w-lg"
                         onSubmit={handleSubmit}
+                        enctype="multipart/form-data"
                     >
-                        {/* Brain Name */}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
-                                    Brain Name
-                                </label>
-                                <p className="text-gray-600 text-xs italic">REQUIRED</p>
-                                <input className="appearance-none h-10 block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
-                                    id="brain-name"
-                                    value={brainName}
-                                    onChange={(e) => {
-                                        setBrainName(e.target.value)
-                                    }}
-                                    type="text"
-                                    placeholder="Brain Name"
-                                />
+                        {/* Brain Name Input Field */}
+                        <div className="mb-4">
+                            <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" htmlFor="brain-name">
+                                Brain Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                id="brain-name"
+                                type="text"
+                                value={brainName}
+                                onChange={(e) => setBrainName(e.target.value)}
+                                className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                                placeholder="Brain Name"
+                                required
+                            />
+                            <div className="mt-1">
+                                {brainNameError && <p className="text-red-500 text-xs italic mb-1">{brainNameError}</p>}
                             </div>
+                            <div>
+                                <p className="text-gray-600 text-xs italic">Name must be at least 3 characters long and cannot contain special characters: -`!@#$£%^&amp;*()_-+={}[]|`:;"'&lt;,&gt;.?/</p>
+                            </div>
+                        </div>
 
+                        {/* Brain Description Input Field */}
+                        <div className="mb-4">
+                            <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" htmlFor="brain-description">
+                                Description <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                id="brain-description"
+                                value={brainDescription}
+                                onChange={(e) => setBrainDescription(e.target.value)}
+                                className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                                placeholder="Brain Description"
+                                rows="2"
+                                required
+                            ></textarea>
                         </div>
-                        {/* Brain Description */}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            <div className="w-full px-3">
-                                <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-password">
-                                    Description
-                                </label>
-                                <p className="text-gray-600 text-xs italic">REQUIRED</p>
-                                <input
-                                    rows='4'
-                                    className="appearance-none h-10 block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
-                                    id="brain-description"
-                                    value={brainDescription}
-                                    onChange={(e) => {
-                                        setBrainDescription(e.target.value)
-                                    }}
-                                    type="text"
-                                    placeholder="Brain Description"
-                                />
-                            </div>
+
+                        {/* File Upload Section */}
+                        <div className="mb-4">
+                            <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">
+                                Upload Files <span className="text-red-500">*</span>
+                            </label>
+                            <FileUploader
+                                multiple={true}
+                                handleChange={handleChange}
+                                name="files"
+                                types={fileTypes}
+                                className="mb-2"
+                            />
                         </div>
-                        {/* Uploaded Files*/}
-                        <div className="flex flex-wrap -mx-3 mb-1">
-                            {/* new files package */}
-                            <div className='w-full px-3 flex flex-col'>
-                                <FileUploader
-                                    multiple={true}
-                                    handleChange={handleChange}
-                                    name='files'
-                                    types={fileTypes}
-                                />
-                                {/* Display all uploaded file names */}
-                                <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2'>Uploaded Files</label>
+
+                        {/* Uploaded Files Display */}
+                        <div>
+                            <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2'>Uploaded Files</label>
+                            <div className="max-h-48 overflow-y-auto border border-gray-300 p-4 rounded-lg space-y-2">
                                 {files.length > 0 ? (
-                                <>
-                                    <ul className='space-y-2'>
-                                        {files.map((file, index) => (
-                                            <li key={index}>
-                                                {file.name}
-                                                {/* Delete button next to each file name */}
-                                                <button onClick={() => handleDelete(index)} className="ml-4 text-red-500 hover:text-red-700">
-                                                    Delete
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </>
+                                    files.map((file, index) => (
+                                        <div key={index} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
+                                            <span className="text-sm">{file.name}</span>
+                                            <button
+                                                onClick={() => handleDelete(index)}
+                                                className="text-white bg-red-500 px-3 py-1 rounded hover:bg-red-700 transition-colors duration-150 cursor-pointer"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    ))
                                 ) : (
-                                    <h4>No files uploaded yet</h4>
+                                    <p className="text-gray-500">No files uploaded yet.</p>
                                 )}
                             </div>
                         </div>
+
                     </form>
 
                 </Modal.Body>

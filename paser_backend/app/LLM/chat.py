@@ -2,15 +2,15 @@ from llama_index.core import Settings
 from llama_index.llms.ollama import Ollama
 
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.core.query_engine import SubQuestionQueryEngine
+from .sub_question import SubQuestionQueryEngine
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
-from llama_index.core.agent import AgentRunner
 from .embeddings import EmbeddingsChromaDB
 from llama_index.core.postprocessor import MetadataReplacementPostProcessor
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
 from IPython.display import Markdown, display
 from .prompts import INITIAL_RESPONSE, SUB_QUERY_PROMPT, FINAL_RESPONSE
+import traceback
 
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
@@ -23,7 +23,7 @@ def display_prompt_dict(prompts_dict):
 class Chatbot:
     def __init__(self, embeddings):
         self.embeddings_chroma_db = embeddings
-        self.llm = Ollama(model='mistral', request_timeout=120)
+        self.llm = Ollama(model='mistral', request_timeout=120,)# base_url="http://host.docker.internal:11434")
 
         llama_debug = LlamaDebugHandler(print_trace_on_end=True)
         callback_manager = CallbackManager([llama_debug])
@@ -57,8 +57,6 @@ class Chatbot:
              }
         )
 
-        display_prompt_dict(self.sub_query_engine.get_prompts())
-
         Settings.llm = self.llm
         Settings.context_window = 8000
 
@@ -84,17 +82,19 @@ class Chatbot:
             tools.append(tool)
 
         return tools
-
-    def stream_query(self, query_str):
-        streaming_response = self.query_engine.query(query_str)
-        for token in streaming_response.response_gen:
-            print(token, end='')
     
     def query(self, query_str):
+        try:
+            response = self.sub_query_engine.query(query_str)
+                
+            out = str(response) + self.get_sources(response)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            traceback.print_exc()
 
-        response = self.sub_query_engine.query(query_str)
+            out = "Sorry, there is no suitable tool to answer your query, please try another query."
 
-        out = str(response) + self.get_sources(response)
+        
         return  out
 
     def get_sources(self, response):   

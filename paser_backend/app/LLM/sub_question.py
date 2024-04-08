@@ -10,7 +10,7 @@ from llama_index.core.callbacks.base import CallbackManager
 from llama_index.core.callbacks.schema import CBEventType, EventPayload
 from llama_index.core.llms.llm import LLM
 from llama_index.core.prompts.mixin import PromptMixinType
-from llama_index.core.question_gen.llm_generators import LLMQuestionGenerator
+from .question_gen import LLMQuestionGenerator
 from llama_index.core.question_gen.types import BaseQuestionGenerator, SubQuestion
 from llama_index.core.response_synthesizers import (
     BaseSynthesizer,
@@ -40,25 +40,6 @@ class SubQuestionAnswerPair(BaseModel):
 
 
 class SubQuestionQueryEngine(BaseQueryEngine):
-    """Sub question query engine.
-
-    A query engine that breaks down a complex query (e.g. compare and contrast) into
-        many sub questions and their target query engine for execution.
-        After executing all sub questions, all responses are gathered and sent to
-        response synthesizer to produce the final response.
-
-    Args:
-        question_gen (BaseQuestionGenerator): A module for generating sub questions
-            given a complex question and tools.
-        response_synthesizer (BaseSynthesizer): A response synthesizer for
-            generating the final response
-        query_engine_tools (Sequence[QueryEngineTool]): Tools to answer the
-            sub questions.
-        verbose (bool): whether to print intermediate questions and answers.
-            Defaults to True
-        use_async (bool): whether to execute the sub questions with asyncio.
-            Defaults to True
-    """
 
     def __init__(
         self,
@@ -110,8 +91,6 @@ class SubQuestionQueryEngine(BaseQueryEngine):
                     OpenAIQuestionGenerator,
                 )  # pants: no-infer-dep
 
-                # try to use OpenAI function calling based question generator.
-                # if incompatible, use general LLM question generator
                 question_gen = OpenAIQuestionGenerator.from_defaults(llm=llm)
 
             except ImportError as e:

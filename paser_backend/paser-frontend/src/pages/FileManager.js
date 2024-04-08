@@ -22,14 +22,18 @@ function FileManager() {
     setBrains(brains.filter(brain => brain.id !== deletedBrainId));
   }
 
-  function handleBrainUpdate(updatedBrain) {
-    setBrains(brains.map(brain => {
-      if (brain.id === updatedBrain.id) {
-        return updatedBrain; // Replace with the updated brain
-      }
-      return brain; // Unchanged brains
-    }));
-  }
+  // function handleBrainUpdate(updatedBrain) {
+  //   setBrains(brains.map(brain => {
+  //     if (brain.id === updatedBrain.id) {
+  //       return updatedBrain; // Replace with the updated brain
+  //     }
+  //     return brain; // Unchanged brains
+  //   }));
+  // }
+
+  const handleBrainUpdate = (updatedBrain) => {
+    setBrains(brains.map(brain => brain.id === updatedBrain.id ? updatedBrain : brain));
+  };
 
   function updateBrain(id, newBrainName, newBrainDescription, newBrainFiles) {
 
@@ -88,63 +92,70 @@ function FileManager() {
       })
   }, []);
 
-
-
   const [brain, setBrain] = useState();
 
-  // function newBrain(brainName, brainDescription, brainFiles) {
-  //   const data = {
-  //       name: brainName,
-  //       description: brainDescription,
-  //       files: brainFiles
-  //   };
-  //   const url = baseUrl + '/api/brains/';
+  // function newBrain(formData) {
+  //   const url = baseUrl + `/api/brains/create/`;
   //   fetch(url, {
-  //       method: 'POST',
-  //       headers: {
-  //           'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify(data)
+  //     method: 'POST',
+  //     body: formData,
   //   }).then((response) => {
-  //       if(!response.ok) {
-  //           throw new Error('Network response was not ok');
-  //       }
-  //       return response.json();
+  //     if (!response.ok) {
+  //       throw new Error('Network response was not ok');
+  //     }
+  //     return response.json();
   //   }).then((data) => {
-  //       toggleShow();
-  //       console.log(data);
-  //       setBrains([...brains, data.brain]);
-  //       console.log('brain added');
-  //       // make sure list is updated appropriately
-  //   }).catch((e) =>   {
-  //       console.log(e);
+  //     toggleShow();
+  //     console.log(data);
+  //     setBrains([...brains, data.brain]);
+  //     console.log('brain added');
+  //   }).catch((e) => {
+  //     console.log(e);
   //   });
   // }
 
   function newBrain(formData) {
-    const url = baseUrl + `/api/brains/`;
+    const url = `${baseUrl}/api/brains/create/`; // Ensure the URL is correctly concatenated
     fetch(url, {
       method: 'POST',
-      body: formData // Directly use FormData here
+      body: formData,
     }).then((response) => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
       return response.json();
     }).then((data) => {
-      toggleShow();
-      console.log(data);
-      setBrains([...brains, data.brain]);
-      console.log('brain added');
+      setShow(false); // Close the modal
+      // Fetch the updated list of brains to reflect the newly added brain
+      fetchBrains(); // Fetch the updated brains list
     }).catch((e) => {
-      console.log(e);
+      console.error(e);
     });
   }
+
+  // Fetch brains from the backend and update state
+  function fetchBrains() {
+    fetch(`${baseUrl}/api/brains/`)
+      .then(response => response.json())
+      .then(data => {
+        setBrains(data.brains); // Assuming your backend returns an object with a 'brains' property
+        console.log('Brains fetched successfully:', data.brains);
+      })
+      .catch(error => {
+        console.error('Error fetching brains:', error);
+      });
+  }
+
+  // Add fetchBrains to useEffect to initially load brains
+  useEffect(() => {
+    console.log('Fetching brains...');
+    fetchBrains(); // Call fetchBrains to load brains when the component mounts
+  }, []); // Empty dependency array ensures this runs once on mount
 
   return (
     <>
 
-      <div className='flex flex-wrap flex-start justify-start'>
+      <div className='flex flex-wrap flex-start justify-start overflow-hidden'>
 
         <AddBrain newBrain={newBrain} show={show} toggleShow={toggleShow} />
 

@@ -5,7 +5,6 @@ import { useParams } from 'react-router-dom';
 
 export default function Brain(props) {
 
-
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -50,7 +49,6 @@ export default function Brain(props) {
                                         if (!response.ok) {
                                             throw new Error('Network response was not ok');
                                         }
-                                        // assume code went well
                                         console.log('deleted brain with id: ' + props.id);
                                         console.log('updating page via refresh...');
                                         window.location.reload();
